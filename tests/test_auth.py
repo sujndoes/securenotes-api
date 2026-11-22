@@ -70,3 +70,19 @@ def test_me_with_token(client):
 	data = response.json()
 	assert data["email"] == "loginmetest@example.com"
 	
+def test_register_email_is_case_insensitive(client):
+	response = client.post("/register",
+							json={"email": "Sensitive@Example.com", "password": "sensitive12345"})
+	assert response.status_code == 201				
+	response = client.post("/register",
+							json={"email": "sensitive@example.com", "password": "sensitive12345"})					
+	assert response.status_code == 409
+
+def test_login_email_is_case_insensitive(client):
+	response = client.post("/register",
+							json={"email": "sensitive@example.com", "password": "sensitive1234567"})
+	assert response.status_code == 201
+	
+	response = client.post("/login",
+							data={"username": "Sensitive@Example.com", "password": "sensitive1234567"})
+	assert response.status_code	== 200
