@@ -10,6 +10,8 @@ from app.security import hash_password, verify_password, create_access_token
 
 router = APIRouter()
 
+DUMMY_HASH = hash_password("not-a-real-password")
+
 @router.post("/register", response_model=UserOut, status_code=201)
 def register(data: UserCreate, db: Session = Depends(get_db)):
 	email = data.email.lower().strip()
@@ -29,6 +31,7 @@ def login(data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
 	email = data.username.lower().strip()
 	find_user = db.scalar(select(User).where(User.email==email))
 	if find_user is None:
+		verify_password(DUMMY_HASH, data.password)
 		raise HTTPException(status_code=401, detail="Incorrect Email or Password!")
 	else:
 		password_check = verify_password(find_user.password_hash, data.password)
