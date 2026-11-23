@@ -86,3 +86,27 @@ def test_login_email_is_case_insensitive(client):
 	response = client.post("/login",
 							data={"username": "Sensitive@Example.com", "password": "sensitive1234567"})
 	assert response.status_code	== 200
+
+def test_login_is_rate_limited(client):
+	response = client.post("/register",
+							json={"email": "loginmetest@example.com", "password": "loggingme1234567"})
+	assert response.status_code	== 201
+	for i in range(5):
+		response = client.post("/login",
+							data={"username": "loginmetest@example.com", "password": "loggingme1234567"})
+		assert response.status_code	== 200
+	response = client.post("/login",
+							data={"username": "loginmetest@example.com", "password": "loggingme1234567"})
+	assert response.status_code	== 429	
+
+def test_register_is_rate_limited(client):
+	response = client.post("/register",
+							json={"email": "loginmetest@example.com", "password": "loggingme1234567"})
+	assert response.status_code == 201
+	for i in range(4):
+		response = client.post("/register",
+							json={"email": "loginmetest@example.com", "password": "loggingme1234567"})
+		assert response.status_code == 409
+	response = client.post("/register",
+							json={"email": "loginmetest@example.com", "password": "loggingme1234567"})
+	assert response.status_code == 429

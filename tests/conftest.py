@@ -1,5 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
+from app.limiter import limiter
 from app.main import app
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -27,7 +28,8 @@ def client(): #should overrride any get_db call with override_get_db , uses test
 	app.dependency_overrides[get_db] = override_get_db
 	Base.metadata.create_all(bind = engine)
 	try:
-			yield TestClient(app)
+		limiter.reset()
+		yield TestClient(app)
 	finally:
-			Base.metadata.drop_all(bind = engine)
-			app.dependency_overrides.clear()
+		Base.metadata.drop_all(bind = engine)
+		app.dependency_overrides.clear()
