@@ -1,4 +1,5 @@
-from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker , DeclarativeBase
 
 from app.config import settings
@@ -20,3 +21,9 @@ def get_db():
 			yield db
 		finally:
 			db.close()	
+
+@event.listens_for(Engine, "connect")
+def enable_foreign_keys(dbapi_connection, connection_record):
+	cursor = dbapi_connection.cursor()
+	cursor.execute("PRAGMA foreign_keys=ON")
+	cursor.close()

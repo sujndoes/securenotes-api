@@ -1,3 +1,7 @@
+import jwt
+from app.config import settings
+from app.security import verify_password
+
 def test_register_success(client):
 	response = client.post("/register",
 							json={"email": "registertest@example.com", "password": "registering1234567"})
@@ -110,3 +114,18 @@ def test_register_is_rate_limited(client):
 	response = client.post("/register",
 							json={"email": "loginmetest@example.com", "password": "loggingme1234567"})
 	assert response.status_code == 429
+
+def test_token_without_expiry_is_rejected(client):
+	response = client.post("/register",
+							json={"email": "loginmetest@example.com", "password": "loggingme1234567"})
+	assert response.status_code == 201
+	
+	token = jwt.encode({"sub":"1"}, settings.secret_key, algorithm="HS256")
+	
+	response = client.get("/me",
+							headers={"Authorization": f"Bearer {token}"})
+	assert response.status_code == 401
+	
+def test_verify_password_handles_garbage_hash():
+	result = verify_password("garbage", "x")
+	assert result is False

@@ -3,7 +3,7 @@ from datetime import datetime , timedelta , timezone
 import jwt
 
 from argon2 import PasswordHasher
-from argon2.exceptions import VerifyMismatchError
+from argon2.exceptions import VerificationError, InvalidHashError
 
 from app.config import settings
 ALGORITHM = "HS256"
@@ -18,7 +18,7 @@ def verify_password(stored_hash: str , password: str) -> bool:
 	try:
 		password_hasher.verify(stored_hash , password)
 		return True
-	except VerifyMismatchError:
+	except (VerificationError, InvalidHashError):
 		return False
 				
 def create_access_token(user_id: int) -> str:
@@ -28,7 +28,7 @@ def create_access_token(user_id: int) -> str:
 	
 def decode_access_token(token: str) -> int | None:
 	try:
-		payload = jwt.decode(token , settings.secret_key , algorithms = [ALGORITHM])
+		payload = jwt.decode(token , settings.secret_key , algorithms = [ALGORITHM], options={"require" : ["sub", "exp"]})
 		return int(payload["sub"])
 	except (jwt.PyJWTError , KeyError , ValueError):
 		return None
