@@ -1,4 +1,5 @@
 import jwt
+import logging
 from app.config import settings
 from app.security import verify_password
 
@@ -129,3 +130,68 @@ def test_token_without_expiry_is_rejected(client):
 def test_verify_password_handles_garbage_hash():
 	result = verify_password("garbage", "x")
 	assert result is False
+
+def test_failed_login_is_logged(client, caplog):
+	email = "loginmetest@example.com"
+	password = "loggingme1234567"
+	response = client.post("/login",
+							data={"username": email, "password": password})
+	assert response.status_code	== 401
+	assert "failed_login" in caplog.text
+	assert email in caplog.text
+	assert password not in caplog.text
+
+def test_wrong_password_login_is_logged(client, caplog):
+	email = "wrongpwlog@example.com"
+	good_password = "loggingme1234567"
+	bad_password = "totallywrong12345"
+	response = client.post("/register",
+							json={"email": email, "password": good_password})
+	assert response.status_code == 201
+
+	response = client.post("/login",
+							data={"username": email, "password": bad_password})
+	assert response.status_code == 401
+	assert "failed_login reason=wrong_password" in caplog.text
+	assert email in caplog.text
+	assert bad_password not in caplog.text
+	assert good_password not in caplog.text
+
+def test_successful_login_is_logged(client, caplog):
+	caplog.set_level(logging.INFO, logger="app.routes.auth")
+	email = "successlog@example.com"
+	password = "loggingme1234567"
+	response = client.post("/register",
+							json={"email": email, "password": password})
+	assert response.status_code == 201
+
+	response = client.post("/login",
+							data={"username": email, "password": password})
+	assert response.status_code == 200
+	token = response.json()["access_token"]
+	assert "successful_login" in caplog.text
+	assert email in caplog.text
+	assert password not in caplog.text
+	assert token not in caplog.text
+
+def test_login_log_injection_is_neutralized(client, caplog):
+	evil = "a@b.com\nsuccessful_login email='admin'"
+	response = client.post("/login",
+							data={"username": evil, "password": "whatever1234567"})
+	assert response.status_code == 401
+	assert "\nsuccessful_login" not in caplog.text
+	assert "\\nsuccessful_login" in caplog.text
+
+def test_duplicate_registration_is_logged(client, caplog):
+	email = "duplog@example.com"
+	password = "loggingme1234567"
+	response = client.post("/register",
+							json={"email": email, "password": password})
+	assert response.status_code == 201
+
+	response = client.post("/register",
+							json={"email": email, "password": password})
+	assert response.status_code == 409
+	assert "duplicate_registration" in caplog.text
+	assert email in caplog.text
+	assert password not in caplog.text
