@@ -19,6 +19,8 @@ jobs:
       - run: pip install -r requirements.txt
       - run: pip install pip-audit
       - run: pip-audit -r requirements.txt
+      - run: pip install bandit
+      - run: bandit -r app
       - run: python -m pytest
         env:
           SECRET_KEY: ci-only-dummy-key-abcdefghijklmn
