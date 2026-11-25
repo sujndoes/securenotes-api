@@ -17,6 +17,8 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -r requirements.txt
+      - run: pip install pip-audit
+      - run: pip-audit -r requirements.txt
       - run: python -m pytest
         env:
           SECRET_KEY: ci-only-dummy-key-abcdefghijklmn
